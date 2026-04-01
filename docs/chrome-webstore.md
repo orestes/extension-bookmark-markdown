@@ -45,7 +45,7 @@ SAVE MODES
 
 By default the extension downloads the Markdown file directly to your browser's downloads folder — no account, no server, no setup required.
 
-If you prefer to send files to your own backend, switch to server mode in the Options page. Enter the server URL and the extension will verify the connection by checking the server's /health endpoint. If the server responds correctly, the options page shows the server version so you can confirm you are connected to the right instance. Server mode sends a PUT request with the file as multipart/form-data.
+If you prefer to send files to your own backend, switch to server mode in the Options page. Full server requirements and integration details are documented at https://github.com/orestes/extension-bookmark-markdown/blob/main/docs/server.md
 
 WHERE IT WORKS
 
@@ -118,6 +118,7 @@ non-personal URL (e.g. https://notes.example.com), status showing "Saved — ser
 | Permission  | Justification                                                                                                                                                                                                           |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `activeTab` | Grants temporary access to the active tab when the user clicks the toolbar icon. This allows the scripting permission to inject a content script into that specific tab without requiring permanent broad host access.  |
+| `offscreen` | Creates an offscreen document to perform HTML-to-Markdown conversion using Turndown outside of the service worker context, where DOM APIs are not available.                                                            |
 | `scripting` | Injects the content script into the active tab to read the page DOM, extract article content using Mozilla Readability (stripping navigation, ads, and boilerplate), and convert it to Markdown with YAML front matter. |
 | `storage`   | Persists user preferences (save mode and server URL) in synced browser storage so settings are retained across sessions and devices.                                                                                    |
 | `tabs`      | Reads the URL of the active tab and listens for tab navigation events to enable or disable the toolbar icon — the icon is active only on HTTP/HTTPS pages and grayed out on browser-internal pages.                     |
