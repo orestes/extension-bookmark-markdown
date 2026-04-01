@@ -1,9 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Bookmark as Markdown",
-  "version": "1.3.0",
+  "version": "1.0.0",
   "description": "Save any webpage as a Markdown file with YAML front matter. Download directly (default) or send to your own server.",
-  "permissions": ["activeTab", "offscreen", "scripting", "storage", "tabs"],
+  "permissions": [
+    "activeTab",
+    "offscreen",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
   "background": {
     "service_worker": "background.js"
   },
