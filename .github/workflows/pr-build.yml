@@ -1,0 +1,80 @@
+name: PR Build
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Find or create comment
+        id: comment
+        run: |
+          existing_id=$(gh api \
+            repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            --paginate \
+            --jq '[.[] | select(.body | contains("<!-- pr-build-bot -->"))] | first | .id')
+          if [ "$existing_id" != "null" ] && [ -n "$existing_id" ]; then
+            echo "id=$existing_id" >> $GITHUB_OUTPUT
+            gh api \
+              repos/${{ github.repository }}/issues/comments/$existing_id \
+              -X PATCH \
+              -f $'body=<!-- pr-build-bot -->\nBuilding extension artifact...'
+          else
+            comment_id=$(gh api \
+              repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+              -f $'body=<!-- pr-build-bot -->\nBuilding extension artifact...' \
+              --jq '.id')
+            echo "id=$comment_id" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build
+        run: yarn build
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: bookmark-as-markdown-${{ steps.version.outputs.version }}-pr-${{ github.event.pull_request.number }}
+          path: dist/
+          retention-days: 14
+
+      - name: Update comment with download link
+        run: |
+          gh api \
+            repos/${{ github.repository }}/issues/comments/${{ steps.comment.outputs.id }} \
+            -X PATCH \
+            -f $'body=<!-- pr-build-bot -->\nExtension artifact ready: [bookmark-as-markdown-${{ steps.version.outputs.version }}-pr-${{ github.event.pull_request.number }}](${{ steps.upload.outputs.artifact-url }})'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update comment on failure
+        if: failure() && steps.comment.outputs.id != ''
+        run: |
+          gh api \
+            repos/${{ github.repository }}/issues/comments/${{ steps.comment.outputs.id }} \
+            -X PATCH \
+            -f $'body=<!-- pr-build-bot -->\nBuild failed. See the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
