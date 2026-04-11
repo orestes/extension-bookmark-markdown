@@ -2,6 +2,7 @@ name: PR Build
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 jobs:
   build:
@@ -9,6 +10,16 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    if: |
+      !contains(github.event.pull_request.labels.*.name, 'skip-build') && (
+        contains(github.event.pull_request.labels.*.name, 'build') ||
+        startsWith(github.event.pull_request.title, 'feat') ||
+        startsWith(github.event.pull_request.title, 'fix') ||
+        startsWith(github.event.pull_request.title, 'perf') ||
+        startsWith(github.event.pull_request.title, 'refactor') ||
+        startsWith(github.event.pull_request.title, 'revert') ||
+        startsWith(github.event.pull_request.title, 'build')
+      )
     steps:
       - uses: actions/checkout@v6
 
