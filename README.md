@@ -14,14 +14,14 @@ Each saved page is a Markdown file with YAML front matter:
 
 ```yaml
 ---
-title: "Page Title"
-url: "https://example.com/article"
-description: "Page description from Open Graph"
-image: "https://example.com/og-image.jpg"
-tags:
-  - article:tag values from meta
-customTags:
-  - your-custom-tag
+title: I Made Eustace... But He Looks WAY Too Real
+url: https://www.youtube.com/watch?v=KeVjhSYMJTo&t=2s
+description: In this video, I take Eustace Bagge from Courage the Cowardly Dog…
+  and turn him into something way more disturbing.What would Eustace actually
+  look like in r...
+image: https://i.ytimg.com/vi/KeVjhSYMJTo/maxresdefault.jpg
+tags: [moore-art, eustace, cowardly dog, clay]
+customTags: [clay, inspiring, hobbies]
 ---
 # Article content in Markdown...
 ```
