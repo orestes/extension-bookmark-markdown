@@ -1,27 +1,21 @@
 # Bookmark as Markdown — Chrome Extension
 
-A Chrome extension for bookmarking the current page as a Markdown file. Each bookmark captures the page metadata and a clean, readable version of the article content — stripped of navigation, ads, and boilerplate.
+A Chrome extension for saving the current page as a Markdown file. Click the toolbar icon, optionally add tags, and save — the page content is extracted, cleaned with Mozilla Readability, and written to a Markdown file with YAML front matter. Files download directly to your browser's downloads folder by default; switch to server mode in Options — see [Custom Integration](#custom-integration).
 
 **[Install from the Chrome Web Store](https://chromewebstore.google.com/detail/mimcmogdjmmenflgmbibdmjlncgipkla)**
 
-## How it works
-
-Click the extension icon. The popup extracts the page content, shows a preview card, and lets you add custom tags before saving.
-
-By default the file is downloaded directly to your browser's downloads folder. In the Options page you can switch to server mode — see [Custom Integration](#custom-integration) below.
-
-Each saved page is a Markdown file with YAML front matter:
+Example output:
 
 ```yaml
 ---
-title: "Page Title"
-url: "https://example.com/article"
-description: "Page description from Open Graph"
-image: "https://example.com/og-image.jpg"
-tags:
-  - article:tag values from meta
-customTags:
-  - your-custom-tag
+title: I Made Eustace... But He Looks WAY Too Real
+url: https://www.youtube.com/watch?v=KeVjhSYMJTo&t=2s
+description: In this video, I take Eustace Bagge from Courage the Cowardly Dog…
+  and turn him into something way more disturbing.What would Eustace actually
+  look like in r...
+image: https://i.ytimg.com/vi/KeVjhSYMJTo/maxresdefault.jpg
+tags: [moore-art, eustace, cowardly dog, clay]
+customTags: [clay, inspiring, hobbies]
 ---
 # Article content in Markdown...
 ```

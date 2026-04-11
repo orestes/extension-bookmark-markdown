@@ -13,10 +13,10 @@ Bookmark as Markdown
 
 ---
 
-## Short description (132 chars max — current: 103)
+## Short description (132 chars max — current: 129)
 
 ```
-Save any webpage as a Markdown file with YAML front matter. Download directly (default) or send to your own server.
+Clip any webpage to a clean Markdown file with YAML front matter — ready to drop into Obsidian, Logseq, or your own server. No account required.
 ```
 
 ---
@@ -24,18 +24,31 @@ Save any webpage as a Markdown file with YAML front matter. Download directly (d
 ## Detailed description (16,000 chars max)
 
 ```
-Bookmark as Markdown captures the current page as a Markdown file with YAML front matter. Save it directly to your downloads folder, or send it to your own server.
+A one-click web clipper for Markdown-based knowledge tools. Save any webpage as a clean, readable Markdown file with YAML front matter — ready to drop into Obsidian, Logseq, or any local vault. No account, no sync service, no setup beyond installing the extension.
 
 Each saved file contains a front matter block with the following fields:
 
-title: "Page title"
-url: "https://example.com/article"
-description: "Page description from Open Graph"
-image: "https://example.com/og-image.jpg"
-tags: [tags from article:tag meta properties]
-customTags: [tags you add before saving]
+<!-- Keep this example in sync with the one in README.md -->
+---
+title: I Made Eustace... But He Looks WAY Too Real
+url: https://www.youtube.com/watch?v=KeVjhSYMJTo&t=2s
+description: In this video, I take Eustace Bagge from Courage the Cowardly Dog…
+  and turn him into something way more disturbing.What would Eustace actually
+  look like in r...
+image: https://i.ytimg.com/vi/KeVjhSYMJTo/maxresdefault.jpg
+tags: [moore-art, eustace, cowardly dog, clay]
+customTags: [clay, inspiring, hobbies]
+---
 
 The file body is the article content converted to clean Markdown using Mozilla Readability (to strip navigation, ads, and boilerplate) and Turndown (HTML to Markdown conversion).
+
+WHO THIS IS FOR
+
+If you run a personal knowledge base in Obsidian, Logseq, or a similar tool that reads from a local file system, this extension gives you a one-click path from any web page to a structured Markdown file ready to drop into your vault.
+
+In server mode, the PUT request can feed directly into an ingestion pipeline — a local script, a home server, or an automation tool like n8n or Make — so saved pages are automatically processed, tagged, or routed without manual steps.
+
+It is not a general-purpose bookmarking tool and has no built-in storage or sync.
 
 HOW IT WORKS
 
@@ -45,19 +58,11 @@ SAVE MODES
 
 By default the extension downloads the Markdown file directly to your browser's downloads folder — no account, no server, no setup required.
 
-If you prefer to send files to your own backend, switch to server mode in the Options page. Full server requirements and integration details are documented at https://github.com/orestes/extension-bookmark-markdown/blob/main/docs/server.md
+If you prefer to send files to your own backend, switch to server mode in the Options page. Server requirements and integration details are documented in the project README on GitHub: https://github.com/orestes/extension-bookmark-markdown
 
 WHERE IT WORKS
 
 The toolbar icon is active on any HTTP or HTTPS page. On browser-internal pages such as the new tab page, settings pages, and extension pages the icon appears grayed out and cannot be used.
-
-WHO THIS IS FOR
-
-If you run a personal knowledge base in Obsidian, Logseq, or a similar tool that reads from a local file system, this extension gives you a one-click path from any web page to a structured Markdown file ready to drop into your vault.
-
-In server mode, the PUT request can feed directly into an ingestion pipeline — a local script, a home server, or an automation tool like n8n or Make — so saved pages are automatically processed, tagged, or routed without manual steps.
-
-It is not a general-purpose bookmarking tool and has no built-in storage or sync.
 ```
 
 ---
@@ -73,9 +78,9 @@ Productivity
 ```
 markdown
 bookmark
-self-hosted
+obsidian
 notes
-readability
+web clipper
 ```
 
 ---
