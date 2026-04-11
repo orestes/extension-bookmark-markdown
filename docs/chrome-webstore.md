@@ -28,6 +28,7 @@ A one-click web clipper for Markdown-based knowledge tools. Save any webpage as 
 
 Each saved file contains a front matter block with the following fields:
 
+<!-- Keep this example in sync with the one in README.md -->
 ---
 title: I Made Eustace... But He Looks WAY Too Real
 url: https://www.youtube.com/watch?v=KeVjhSYMJTo&t=2s
