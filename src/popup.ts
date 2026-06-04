@@ -1,6 +1,6 @@
 import Choices from "choices.js";
 import "choices.js/public/assets/styles/choices.min.css";
-import { stringify } from "yaml";
+import { injectTagsIntoMarkdown } from "./frontmatter";
 import { SaveMode } from "./settings";
 
 const API_ENDPOINT = "http://localhost:3000";
@@ -15,6 +15,7 @@ interface BookmarkMeta {
   description: string;
   image: string;
   url: string;
+  savedAt: string;
 }
 
 function getElement<T extends HTMLElement>(id: string): T {
@@ -118,24 +119,6 @@ function initTagsInput(): void {
   choicesInstance.input.element.focus();
 }
 
-function injectCustomTagsIntoMarkdown(
-  markdown: string,
-  customTags: string[],
-): string {
-  const customTagsYaml = stringify({ customTags }).trimEnd();
-
-  // Insert customTags field before the closing --- of the front matter
-  const closingPos = markdown.indexOf("\n---", 3);
-  if (closingPos === -1) return markdown;
-
-  return (
-    markdown.slice(0, closingPos) +
-    "\n" +
-    customTagsYaml +
-    markdown.slice(closingPos)
-  );
-}
-
 async function onExtract(): Promise<void> {
   const saveButton = getElement<HTMLButtonElement>("save");
   const [result, saveMode] = await Promise.all([
@@ -165,10 +148,10 @@ async function onSave(): Promise<void> {
   errorEl.hidden = true;
   errorEl.textContent = "";
 
-  const customTags = choicesInstance
+  const tags = choicesInstance
     ? (choicesInstance.getValue(true) as string[])
     : [];
-  const markdown = injectCustomTagsIntoMarkdown(currentMarkdown, customTags);
+  const markdown = injectTagsIntoMarkdown(currentMarkdown, tags);
 
   try {
     const saveMode = await getSaveMode();
