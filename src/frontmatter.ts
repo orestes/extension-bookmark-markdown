@@ -3,6 +3,8 @@ import { stringify } from "yaml";
 export interface FrontMatterInput {
   title: string;
   url: string;
+  author: string | null;
+  siteName: string | null;
   description: string;
   image: string;
   sourceTags: readonly string[];
@@ -15,11 +17,13 @@ export function buildFrontMatter(input: FrontMatterInput): string {
   const fields: Record<string, unknown> = {
     title: input.title,
     url: input.url,
-    description: input.description,
-    image: input.image,
-    sourceTags: input.sourceTags,
-    savedAt: input.savedAt,
   };
+  if (input.author) fields.author = input.author;
+  if (input.siteName) fields.siteName = input.siteName;
+  fields.description = input.description;
+  fields.image = input.image;
+  fields.sourceTags = input.sourceTags;
+  fields.savedAt = input.savedAt;
   if (input.publishedAt) fields.publishedAt = input.publishedAt;
   if (input.updatedAt) fields.updatedAt = input.updatedAt;
 

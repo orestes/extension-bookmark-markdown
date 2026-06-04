@@ -15,6 +15,8 @@ function parseFrontMatter(raw: string): Record<string, unknown> {
 const BASE_INPUT = {
   title: "Test Article",
   url: "https://example.com/article",
+  author: null,
+  siteName: null,
   description: "A test description",
   image: "https://example.com/image.jpg",
   sourceTags: ["javascript", "testing"],
@@ -42,6 +44,68 @@ describe("buildFrontMatter", () => {
     expect(fields.image).toBe("https://example.com/image.jpg");
     expect(fields.sourceTags).toEqual(["javascript", "testing"]);
     expect(fields.savedAt).toBe("2025-01-15T12:00:00.000Z");
+  });
+
+  it("includes author when provided", () => {
+    const raw = buildFrontMatter({ ...BASE_INPUT, author: "Tom Warren" });
+    const fields = parseFrontMatter(raw);
+
+    expect(fields.author).toBe("Tom Warren");
+    expect(Object.keys(fields)).toEqual([
+      "title",
+      "url",
+      "author",
+      "description",
+      "image",
+      "sourceTags",
+      "savedAt",
+    ]);
+  });
+
+  it("includes siteName when provided", () => {
+    const raw = buildFrontMatter({ ...BASE_INPUT, siteName: "The Verge" });
+    const fields = parseFrontMatter(raw);
+
+    expect(fields.siteName).toBe("The Verge");
+    expect(Object.keys(fields)).toEqual([
+      "title",
+      "url",
+      "siteName",
+      "description",
+      "image",
+      "sourceTags",
+      "savedAt",
+    ]);
+  });
+
+  it("includes both author and siteName when provided", () => {
+    const raw = buildFrontMatter({
+      ...BASE_INPUT,
+      author: "Tom Warren",
+      siteName: "The Verge",
+    });
+    const fields = parseFrontMatter(raw);
+
+    expect(fields.author).toBe("Tom Warren");
+    expect(fields.siteName).toBe("The Verge");
+    expect(Object.keys(fields)).toEqual([
+      "title",
+      "url",
+      "author",
+      "siteName",
+      "description",
+      "image",
+      "sourceTags",
+      "savedAt",
+    ]);
+  });
+
+  it("omits author and siteName when null", () => {
+    const raw = buildFrontMatter({ ...BASE_INPUT });
+    const fields = parseFrontMatter(raw);
+
+    expect(fields).not.toHaveProperty("author");
+    expect(fields).not.toHaveProperty("siteName");
   });
 
   it("includes publishedAt when provided", () => {
@@ -186,6 +250,8 @@ describe("injectTagsIntoMarkdown", () => {
   it("produces valid YAML after injection", () => {
     const withDates = buildFrontMatter({
       ...BASE_INPUT,
+      author: "Jane Doe",
+      siteName: "Example Blog",
       publishedAt: "2025-01-10T08:00:00.000Z",
       updatedAt: "2025-01-14T10:00:00.000Z",
     });
@@ -195,6 +261,8 @@ describe("injectTagsIntoMarkdown", () => {
     expect(Object.keys(fields)).toEqual([
       "title",
       "url",
+      "author",
+      "siteName",
       "description",
       "image",
       "tags",
