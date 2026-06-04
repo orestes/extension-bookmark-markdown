@@ -1,6 +1,9 @@
 import { Readability } from "@mozilla/readability";
 import TurndownService from "turndown";
-import { stringify } from "yaml";
+import {
+  buildFrontMatter as buildFrontMatterYaml,
+  parseMetaDate,
+} from "./frontmatter";
 
 function getOgProperty(property: string): string | null {
   return (
@@ -30,17 +33,16 @@ function sanitizeImageUrl(url: string | null): string {
 }
 
 function buildFrontMatter(article: ReturnType<Readability["parse"]>): string {
-  return (
-    "---\n" +
-    stringify({
-      title: getOgProperty("og:title") ?? article?.title ?? document.title,
-      url: window.location.href,
-      description: getOgProperty("og:description") ?? "",
-      image: sanitizeImageUrl(getOgProperty("og:image")),
-      tags: getOgTags(),
-    }) +
-    "---\n\n"
-  );
+  return buildFrontMatterYaml({
+    title: getOgProperty("og:title") ?? article?.title ?? document.title,
+    url: window.location.href,
+    description: getOgProperty("og:description") ?? "",
+    image: sanitizeImageUrl(getOgProperty("og:image")),
+    sourceTags: getOgTags(),
+    savedAt: new Date().toISOString(),
+    publishedAt: parseMetaDate(getOgProperty("article:published_time")),
+    updatedAt: parseMetaDate(getOgProperty("article:modified_time")),
+  });
 }
 
 function articleToMarkdown(
@@ -79,4 +81,5 @@ const title = getOgProperty("og:title") ?? document.title;
   description: getOgProperty("og:description") ?? "",
   image: sanitizeImageUrl(getOgProperty("og:image")),
   url: window.location.href,
+  savedAt: new Date().toISOString(),
 };
