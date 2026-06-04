@@ -10,15 +10,21 @@ Example output:
 ---
 title: I Made Eustace... But He Looks WAY Too Real
 url: https://www.youtube.com/watch?v=KeVjhSYMJTo&t=2s
+author: North of the Border
+siteName: YouTube
 description: In this video, I take Eustace Bagge from Courage the Cowardly Dog…
   and turn him into something way more disturbing.What would Eustace actually
   look like in r...
 image: https://i.ytimg.com/vi/KeVjhSYMJTo/maxresdefault.jpg
-tags: [moore-art, eustace, cowardly dog, clay]
-customTags: [clay, inspiring, hobbies]
+tags: [clay, inspiring, hobbies]
+sourceTags: [moore-art, eustace, cowardly dog, clay]
+savedAt: "2026-06-04T12:00:00.000Z"
+publishedAt: "2025-12-01T08:00:00.000Z"
 ---
 # Article content in Markdown...
 ```
+
+`tags` are added by you in the popup before saving. `sourceTags` are extracted automatically from the page's Open Graph `article:tag` metadata. Fields like `author`, `siteName`, `publishedAt`, and `updatedAt` appear only when the page provides them.
 
 ## Custom Integration
 
