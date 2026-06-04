@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bookmark as Markdown",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Save any webpage as a Markdown file with YAML front matter. Download directly (default) or send to your own server.",
   "permissions": [
     "activeTab",
