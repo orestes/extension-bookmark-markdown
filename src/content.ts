@@ -5,11 +5,18 @@ import {
   parseMetaDate,
 } from "./frontmatter";
 
-function getOgProperty(property: string): string | null {
+function getMetaContent(
+  attr: "name" | "property",
+  value: string,
+): string | null {
   return (
-    document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`)
+    document.querySelector<HTMLMetaElement>(`meta[${attr}="${value}"]`)
       ?.content ?? null
   );
+}
+
+function getOgProperty(property: string): string | null {
+  return getMetaContent("property", property);
 }
 
 function getOgTags(): string[] {
@@ -36,9 +43,14 @@ function buildFrontMatter(
   article: ReturnType<Readability["parse"]>,
   savedAt: string,
 ): string {
+  const author =
+    getMetaContent("name", "author") ?? getOgProperty("article:author");
+
   return buildFrontMatterYaml({
     title: getOgProperty("og:title") ?? article?.title ?? document.title,
     url: window.location.href,
+    author: author || null,
+    siteName: getOgProperty("og:site_name") ?? null,
     description: getOgProperty("og:description") ?? "",
     image: sanitizeImageUrl(getOgProperty("og:image")),
     sourceTags: getOgTags(),
