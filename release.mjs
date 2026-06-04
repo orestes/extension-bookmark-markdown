@@ -5,5 +5,5 @@ const { version } = JSON.parse(readFileSync("package.json", "utf8"));
 mkdirSync("release", { recursive: true });
 const output = `../release/bookmark-as-markdown-${version}.zip`;
 
-execSync(`tar -czf "${output}" .`, { cwd: "dist", stdio: "inherit" });
+execSync(`zip -r "${output}" .`, { cwd: "dist", stdio: "inherit" });
 console.log(`Created release/bookmark-as-markdown-${version}.zip`);
