@@ -4,6 +4,7 @@ import {
   buildFrontMatter as buildFrontMatterYaml,
   parseMetaDate,
 } from "./frontmatter";
+import { generateFilename } from "./slug";
 
 function getMetaContent(
   attr: "name" | "property",
@@ -68,16 +69,6 @@ function articleToMarkdown(
     bulletListMarker: "-",
   });
   return td.turndown(article.content ?? "");
-}
-
-function generateFilename(title: string): string {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-{2,}/g, "-");
-  return (slug || "untitled") + ".md";
 }
 
 function extractPageAsMarkdown(savedAt: string): string {
