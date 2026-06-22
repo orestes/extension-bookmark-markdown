@@ -28,7 +28,7 @@ publishedAt: "2025-12-01T08:00:00.000Z"
 
 ## Custom Integration
 
-In Options, switch to server mode and enter your server's base URL (default: `http://localhost:3000`). The extension will send bookmarks directly to your server instead of downloading them to your browser's downloads folder.
+In Options, switch to server mode and enter your server's collection URL (e.g. `http://localhost:3000/api/bookmarks`). The extension validates the endpoint before saving and sends bookmarks directly to your server instead of downloading them to your browser's downloads folder.
 
 See [server.md](docs/server.md) for the full API contract, CORS requirements, and an example implementation.
 

@@ -3,7 +3,6 @@ import "choices.js/public/assets/styles/choices.min.css";
 import { injectTagsIntoMarkdown } from "./frontmatter";
 import { SaveMode } from "./settings";
 
-const API_ENDPOINT = "http://localhost:3000";
 const CLOSE_TIMEOUT = 0.3 * 1000; // in ms
 
 let currentMarkdown: string | null = null;
@@ -49,25 +48,53 @@ async function extractBookmark(): Promise<{
   return { markdown, filename, meta };
 }
 
-function getEndpoint(): Promise<string> {
+function getEndpoint(): Promise<string | null> {
   return new Promise((resolve) => {
     chrome.storage.sync.get("endpoint", ({ endpoint }) => {
-      resolve(
-        typeof endpoint === "string" && endpoint ? endpoint : API_ENDPOINT,
-      );
+      resolve(typeof endpoint === "string" && endpoint ? endpoint : null);
     });
   });
+}
+
+interface ConflictInfo {
+  slug: string;
+  frontmatter: { title?: string; savedAt?: string };
+}
+
+function buildBookmarkBody(markdown: string, filename: string): FormData {
+  const file = new File([markdown], filename, { type: "text/markdown" });
+  const body = new FormData();
+  body.append("file", file);
+  return body;
+}
+
+async function requireEndpoint(): Promise<string> {
+  const endpoint = await getEndpoint();
+  if (!endpoint) throw new Error("No endpoint configured");
+  return endpoint;
 }
 
 async function saveBookmark(
   markdown: string,
   filename: string,
 ): Promise<Response> {
-  const endpoint = await getEndpoint();
-  const file = new File([markdown], filename, { type: "text/markdown" });
-  const body = new FormData();
-  body.append("file", file);
-  return fetch(endpoint, { method: "PUT", body });
+  const endpoint = await requireEndpoint();
+  return fetch(endpoint, {
+    method: "POST",
+    body: buildBookmarkBody(markdown, filename),
+  });
+}
+
+async function overwriteBookmark(
+  markdown: string,
+  filename: string,
+  slug: string,
+): Promise<Response> {
+  const endpoint = await requireEndpoint();
+  return fetch(`${endpoint}/${slug}`, {
+    method: "PUT",
+    body: buildBookmarkBody(markdown, filename),
+  });
 }
 
 function downloadBookmark(markdown: string, filename: string): void {
@@ -137,6 +164,93 @@ async function onExtract(): Promise<void> {
   }
 }
 
+function showConflict(
+  conflict: ConflictInfo,
+  markdown: string,
+  filename: string,
+): void {
+  const saveButton = getElement<HTMLButtonElement>("save");
+  const conflictEl = getElement("save-conflict");
+  const overwriteBtn = getElement<HTMLButtonElement>("overwrite");
+
+  saveButton.dataset.state = "error";
+  saveButton.textContent = "Already saved";
+  saveButton.disabled = false;
+
+  const title = conflict.frontmatter?.title ?? "this URL";
+  const savedAt = conflict.frontmatter?.savedAt;
+  conflictEl.textContent = savedAt
+    ? `"${title}" was saved on ${savedAt}.`
+    : `"${title}" was already saved.`;
+  conflictEl.hidden = false;
+
+  overwriteBtn.hidden = false;
+  overwriteBtn.onclick = () =>
+    handleOverwrite(conflict.slug, markdown, filename);
+}
+
+async function handleOverwrite(
+  slug: string,
+  markdown: string,
+  filename: string,
+): Promise<void> {
+  const saveButton = getElement<HTMLButtonElement>("save");
+  const conflictEl = getElement("save-conflict");
+  const overwriteBtn = getElement<HTMLButtonElement>("overwrite");
+
+  overwriteBtn.disabled = true;
+  overwriteBtn.textContent = "Overwriting…";
+  saveButton.dataset.state = "saving";
+  saveButton.textContent = "Sending…";
+  saveButton.disabled = true;
+
+  let response: Response;
+  try {
+    response = await overwriteBookmark(markdown, filename, slug);
+  } catch {
+    saveButton.dataset.state = "error";
+    saveButton.textContent = "Failed";
+    overwriteBtn.disabled = false;
+    overwriteBtn.textContent = "Overwrite";
+    return;
+  }
+
+  if (!response.ok) {
+    saveButton.textContent = `Error ${response.status}`;
+    saveButton.dataset.state = "error";
+    return;
+  }
+
+  conflictEl.hidden = true;
+  overwriteBtn.hidden = true;
+  saveButton.dataset.state = "saved";
+  saveButton.textContent = "Sent";
+  setTimeout(() => window.close(), CLOSE_TIMEOUT);
+}
+
+async function sendToServer(markdown: string, filename: string): Promise<void> {
+  const saveButton = getElement<HTMLButtonElement>("save");
+
+  saveButton.textContent = "Sending…";
+  const response = await saveBookmark(markdown, filename);
+
+  if (response.status === 409) {
+    const conflict: ConflictInfo = await response.json();
+    showConflict(conflict, markdown, filename);
+    return;
+  }
+
+  if (!response.ok) {
+    saveButton.textContent = `Error ${response.status}`;
+    saveButton.dataset.state = "error";
+    return;
+  }
+
+  saveButton.dataset.state = "saved";
+  saveButton.textContent = "Sent";
+  setTimeout(() => window.close(), CLOSE_TIMEOUT);
+}
+
 async function onSave(): Promise<void> {
   if (!currentMarkdown || !currentFilename) return;
 
@@ -148,42 +262,31 @@ async function onSave(): Promise<void> {
   errorEl.hidden = true;
   errorEl.textContent = "";
 
+  getElement("save-conflict").hidden = true;
+
   const tags = choicesInstance
     ? (choicesInstance.getValue(true) as string[])
     : [];
   const markdown = injectTagsIntoMarkdown(currentMarkdown, tags);
+  const saveMode = await getSaveMode();
 
   try {
-    const saveMode = await getSaveMode();
     if (saveMode === SaveMode.Download) {
       saveButton.textContent = "Downloading…";
       downloadBookmark(markdown, currentFilename);
-    } else {
-      saveButton.textContent = "Sending…";
-      const response = await saveBookmark(markdown, currentFilename);
-      if (!response.ok) {
-        saveButton.textContent = `Error ${response.status}`;
-        saveButton.dataset.state = "error";
-        return;
-      }
+      saveButton.dataset.state = "saved";
+      saveButton.textContent = "Downloaded";
+      setTimeout(() => window.close(), CLOSE_TIMEOUT);
+      return;
     }
-    saveButton.dataset.state = "saved";
-    saveButton.textContent =
-      saveMode === SaveMode.Download ? "Downloaded" : "Sent";
-    setTimeout(() => window.close(), CLOSE_TIMEOUT);
+
+    await sendToServer(markdown, currentFilename);
   } catch {
     saveButton.dataset.state = "error";
     saveButton.textContent = "Failed";
     saveButton.disabled = false;
-    const endpoint = await getEndpoint();
-    const healthUrl = `${endpoint}/health`;
-    const link = document.createElement("a");
-    link.href = healthUrl;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = healthUrl;
-    errorEl.textContent = "Check if the server is live: ";
-    errorEl.appendChild(link);
+    errorEl.textContent =
+      "Could not reach the server. Check your endpoint in settings.";
     errorEl.hidden = false;
   }
 }
