@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc --noEmit && node build.mjs",
+    "dev": "tsc --noEmit && node build.mjs --dev",
     "format:check": "prettier --check .",
     "release": "node build.mjs && node release.mjs",
     "hooks:install": "husky",
