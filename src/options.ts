@@ -1,6 +1,5 @@
 import { SaveMode } from "./settings";
 
-const DEFAULT_ENDPOINT = "http://localhost:3000";
 const DEFAULT_SAVE_MODE = SaveMode.Download;
 
 const form = document.getElementById("settings-form") as HTMLFormElement;
@@ -45,7 +44,7 @@ function showStatus(message: string, success = false): void {
 }
 
 function applyDefaults(): void {
-  endpointInput.value = DEFAULT_ENDPOINT;
+  endpointInput.value = "";
   const radio = document.querySelector<HTMLInputElement>(
     `input[name="saveMode"][value="${DEFAULT_SAVE_MODE}"]`,
   );
@@ -55,7 +54,7 @@ function applyDefaults(): void {
 
 chrome.storage.sync.get(["endpoint", "saveMode"], ({ endpoint, saveMode }) => {
   endpointInput.value =
-    typeof endpoint === "string" && endpoint ? endpoint : DEFAULT_ENDPOINT;
+    typeof endpoint === "string" && endpoint ? endpoint : "";
   const mode: SaveMode =
     saveMode === SaveMode.Server ? SaveMode.Server : SaveMode.Download;
   const radio = document.querySelector<HTMLInputElement>(
@@ -73,20 +72,16 @@ saveModeInputs.forEach((input) => {
 
 resetBtn.addEventListener("click", () => {
   applyDefaults();
-  chrome.storage.sync.set(
-    { saveMode: DEFAULT_SAVE_MODE, endpoint: DEFAULT_ENDPOINT },
-    () => {
-      showStatus("Reset to defaults", true);
-    },
-  );
+  chrome.storage.sync.set({ saveMode: DEFAULT_SAVE_MODE, endpoint: "" }, () => {
+    showStatus("Reset to defaults", true);
+  });
 });
 
-async function checkHealth(endpoint: string): Promise<string> {
-  const response = await fetch(`${endpoint}/health`);
+async function checkEndpoint(endpoint: string): Promise<void> {
+  const response = await fetch(endpoint, { method: "OPTIONS" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const data = await response.json();
-  if (typeof data?.version !== "string") throw new Error("missing version");
-  return data.version;
+  const allow = response.headers.get("Allow") ?? "";
+  if (!allow.includes("POST")) throw new Error("POST not allowed");
 }
 
 form.addEventListener("submit", async (e) => {
@@ -104,23 +99,16 @@ form.addEventListener("submit", async (e) => {
   showStatus("Checking…");
   submitBtn.disabled = true;
 
-  let version: string;
   try {
-    version = await checkHealth(endpoint);
+    await checkEndpoint(endpoint);
   } catch {
-    const link = document.createElement("a");
-    link.href = `${endpoint}/health`;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = `${endpoint}/health`;
-    statusEl.textContent = "Server unreachable — check ";
-    statusEl.appendChild(link);
+    showStatus("Server unreachable or does not accept POST");
     submitBtn.disabled = false;
     return;
   }
 
   chrome.storage.sync.set({ endpoint, saveMode }, () => {
-    showStatus(`Saved — server v${version}`, true);
+    showStatus("Saved", true);
     submitBtn.disabled = false;
   });
 });

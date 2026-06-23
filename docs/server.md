@@ -4,27 +4,25 @@ This document describes the requirements for running a custom server to receive 
 
 ## Overview
 
-In Options, switch the save mode to **Server** and enter your server's base URL (default: `http://localhost:3000`). The extension will send bookmarks directly to your server instead of downloading them to your browser's downloads folder.
+In Options, switch the save mode to **Server** and enter your server's collection URL (e.g. `http://localhost:3000/api/bookmarks`). The extension validates the endpoint with an `OPTIONS` request before saving. Bookmarks are sent directly to your server instead of downloading to your browser's downloads folder.
 
 ## Endpoints
 
-Your server must implement the following two endpoints.
+Your server must implement the following endpoints on the collection URL you configure.
 
-### `GET /health`
+### `OPTIONS {collection}`
 
-Used by the extension to verify the server is reachable and compatible.
+Used by the extension to verify the endpoint is reachable and accepts bookmarks.
 
-**Response:** `200 OK` with JSON body:
+**Response:** `200 OK` (or `204 No Content`) with an `Allow` header that includes `POST`:
 
-```json
-{ "version": "1.0.0" }
+```
+Allow: POST, PUT, OPTIONS
 ```
 
-The `version` field is required. Its value is displayed in the extension popup as confirmation the server is connected.
+### `POST {collection}`
 
-### `PUT /file`
-
-Receives a saved bookmark as a Markdown file.
+Creates a new bookmark.
 
 **Request:** `multipart/form-data` with a single field:
 
@@ -32,21 +30,36 @@ Receives a saved bookmark as a Markdown file.
 | ------ | ---- | ----------------------------------------------------------------------- |
 | `file` | File | The Markdown file to save. The filename is derived from the page title. |
 
+**Response:**
+
+| Status | Meaning                                                                                                           |
+| ------ | ----------------------------------------------------------------------------------------------------------------- |
+| `2xx`  | Success.                                                                                                          |
+| `409`  | The bookmarked URL already exists. Body: `{ "slug": "...", "frontmatter": { "title?": "...", "savedAt?": "..." } }` |
+
+When the extension receives a `409`, it shows the user that this URL was already saved and offers to overwrite.
+
+### `PUT {collection}/{slug}`
+
+Overwrites an existing bookmark at a known slug (returned in the `409` response).
+
+**Request:** Same `multipart/form-data` format as `POST`.
+
 **Response:** Any `2xx` status code is treated as success.
 
 ## CORS
 
-The extension runs in a browser context and makes cross-origin requests to your server. Your server must include a CORS header in all responses.
+The extension runs in a browser context and makes cross-origin requests to your server. Your server must include CORS headers in all responses.
 
 ```
 Access-Control-Allow-Origin: chrome-extension://mimcmogdjmmenflgmbibdmjlncgipkla
 ```
 
-The extension also sends a preflight `OPTIONS` request before `PUT /file`. Your server must respond to `OPTIONS` requests with the appropriate CORS headers:
+The extension sends preflight `OPTIONS` requests before `POST` and `PUT`. Your server must respond with:
 
 ```
 Access-Control-Allow-Origin: chrome-extension://mimcmogdjmmenflgmbibdmjlncgipkla
-Access-Control-Allow-Methods: PUT, OPTIONS
+Access-Control-Allow-Methods: POST, PUT, OPTIONS
 Access-Control-Allow-Headers: Content-Type
 ```
 
@@ -58,11 +71,11 @@ For all requests:
 Access-Control-Allow-Origin: *
 ```
 
-For the preflight `OPTIONS` request:
+For preflight `OPTIONS` requests:
 
 ```
 Access-Control-Allow-Origin: *
-Access-Control-Allow-Methods: PUT, OPTIONS
+Access-Control-Allow-Methods: POST, PUT, OPTIONS
 Access-Control-Allow-Headers: Content-Type
 ```
 
@@ -80,11 +93,17 @@ const upload = multer({ dest: "bookmarks/" });
 
 app.use(cors());
 
-app.get("/health", (req, res) => {
-  res.json({ version: "1.0.0" });
+app.options("/api/bookmarks", (req, res) => {
+  res.set("Allow", "POST, PUT, OPTIONS").sendStatus(204);
 });
 
-app.put("/file", upload.single("file"), (req, res) => {
+app.post("/api/bookmarks", upload.single("file"), (req, res) => {
+  // Check for duplicate URL, return 409 if exists:
+  // res.status(409).json({ slug: "existing-slug", frontmatter: { title: "...", savedAt: "..." } });
+  res.sendStatus(201);
+});
+
+app.put("/api/bookmarks/:slug", upload.single("file"), (req, res) => {
   res.sendStatus(200);
 });
 

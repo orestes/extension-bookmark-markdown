@@ -46,7 +46,7 @@ WHO THIS IS FOR
 
 If you run a personal knowledge base in Obsidian, Logseq, or a similar tool that reads from a local file system, this extension gives you a one-click path from any web page to a structured Markdown file ready to drop into your vault.
 
-In server mode, the PUT request can feed directly into an ingestion pipeline — a local script, a home server, or an automation tool like n8n or Make — so saved pages are automatically processed, tagged, or routed without manual steps.
+In server mode, the POST request can feed directly into an ingestion pipeline -- a local script, a home server, or an automation tool like n8n or Make -- so saved pages are automatically processed, tagged, or routed without manual steps.
 
 It is not a general-purpose bookmarking tool and has no built-in storage or sync.
 
