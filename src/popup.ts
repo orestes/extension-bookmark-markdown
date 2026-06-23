@@ -333,8 +333,27 @@ async function onSubmit(): Promise<void> {
   }
 }
 
-getElement("popup-form").addEventListener("submit", (e) => {
+const form = getElement<HTMLFormElement>("popup-form");
+
+form.addEventListener("submit", (e) => {
   e.preventDefault();
   onSubmit().catch(console.error);
 });
+
+// Choices.js swallows Enter (calls preventDefault) and clears the input before
+// bubble-phase listeners run. Use capture phase to read the input value first:
+// if the tags input has text, let Choices.js add the tag; if empty, submit.
+form.addEventListener(
+  "keydown",
+  (e) => {
+    if (e.key !== "Enter") return;
+    const choicesInput = choicesInstance?.input.element;
+    if (document.activeElement === choicesInput && choicesInput!.value.trim()) {
+      return;
+    }
+    form.requestSubmit();
+  },
+  true,
+);
+
 onExtract().catch(console.error);
