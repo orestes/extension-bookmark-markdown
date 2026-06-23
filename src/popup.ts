@@ -3,11 +3,12 @@ import "choices.js/public/assets/styles/choices.min.css";
 import { injectTagsIntoMarkdown } from "./frontmatter";
 import { SaveMode } from "./settings";
 
-const CLOSE_TIMEOUT = 0.3 * 1000; // in ms
+const CLOSE_DURATION_MS = 1200;
 
 let currentMarkdown: string | null = null;
 let currentFilename: string | null = null;
 let choicesInstance: Choices | null = null;
+let pendingOverwrite: (() => Promise<void>) | null = null;
 
 interface BookmarkMeta {
   title: string;
@@ -19,6 +20,17 @@ interface BookmarkMeta {
 
 function getElement<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
+}
+
+function closeWithProgress(label: string): void {
+  const saveButton = getElement<HTMLButtonElement>("save");
+  saveButton.textContent = label;
+  saveButton.disabled = true;
+  saveButton.dataset.state = "closing";
+  saveButton.style.setProperty("--close-duration", `${CLOSE_DURATION_MS}ms`);
+  saveButton.addEventListener("animationend", () => window.close(), {
+    once: true,
+  });
 }
 
 async function extractBookmark(): Promise<{
@@ -164,6 +176,36 @@ async function onExtract(): Promise<void> {
   }
 }
 
+function formatRelativeTime(date: Date): string {
+  const seconds = Math.round((date.getTime() - Date.now()) / 1000);
+  const units: [Intl.RelativeTimeFormatUnit, number][] = [
+    ["year", 365 * 24 * 60 * 60],
+    ["month", 30 * 24 * 60 * 60],
+    ["week", 7 * 24 * 60 * 60],
+    ["day", 24 * 60 * 60],
+    ["hour", 60 * 60],
+    ["minute", 60],
+    ["second", 1],
+  ];
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  for (const [unit, threshold] of units) {
+    if (Math.abs(seconds) >= threshold) {
+      return rtf.format(Math.round(seconds / threshold), unit);
+    }
+  }
+  return rtf.format(seconds, "second");
+}
+
+function formatSavedAt(iso: string): string {
+  const date = new Date(iso);
+  const absolute = new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+  const relative = formatRelativeTime(date);
+  return `${absolute} (${relative})`;
+}
+
 function showConflict(
   conflict: ConflictInfo,
   markdown: string,
@@ -171,22 +213,23 @@ function showConflict(
 ): void {
   const saveButton = getElement<HTMLButtonElement>("save");
   const conflictEl = getElement("save-conflict");
-  const overwriteBtn = getElement<HTMLButtonElement>("overwrite");
-
-  saveButton.dataset.state = "error";
-  saveButton.textContent = "Already saved";
-  saveButton.disabled = false;
+  const cancelBtn = getElement<HTMLButtonElement>("cancel");
 
   const title = conflict.frontmatter?.title ?? "this URL";
   const savedAt = conflict.frontmatter?.savedAt;
   conflictEl.textContent = savedAt
-    ? `"${title}" was saved on ${savedAt}.`
+    ? `"${title}" was saved on ${formatSavedAt(savedAt)}.`
     : `"${title}" was already saved.`;
   conflictEl.hidden = false;
 
-  overwriteBtn.hidden = false;
-  overwriteBtn.onclick = () =>
-    handleOverwrite(conflict.slug, markdown, filename);
+  saveButton.textContent = "Overwrite";
+  saveButton.dataset.state = "error";
+  saveButton.disabled = false;
+
+  cancelBtn.hidden = false;
+  cancelBtn.onclick = () => window.close();
+
+  pendingOverwrite = () => handleOverwrite(conflict.slug, markdown, filename);
 }
 
 async function handleOverwrite(
@@ -196,23 +239,21 @@ async function handleOverwrite(
 ): Promise<void> {
   const saveButton = getElement<HTMLButtonElement>("save");
   const conflictEl = getElement("save-conflict");
-  const overwriteBtn = getElement<HTMLButtonElement>("overwrite");
+  const cancelBtn = getElement<HTMLButtonElement>("cancel");
 
-  overwriteBtn.disabled = true;
-  overwriteBtn.textContent = "Overwriting…";
-  saveButton.dataset.state = "saving";
-  saveButton.textContent = "Sending…";
   saveButton.disabled = true;
+  saveButton.textContent = "Overwriting…";
+  saveButton.dataset.state = "saving";
 
   let response: Response;
   try {
     response = await overwriteBookmark(markdown, filename, slug);
-  } catch {
+  } catch (err) {
+    saveButton.disabled = false;
+    saveButton.textContent = "Overwrite";
     saveButton.dataset.state = "error";
-    saveButton.textContent = "Failed";
-    overwriteBtn.disabled = false;
-    overwriteBtn.textContent = "Overwrite";
-    return;
+    // Surface unexpected fetch failures (e.g. extension bug, malformed request)
+    throw err;
   }
 
   if (!response.ok) {
@@ -222,10 +263,9 @@ async function handleOverwrite(
   }
 
   conflictEl.hidden = true;
-  overwriteBtn.hidden = true;
-  saveButton.dataset.state = "saved";
-  saveButton.textContent = "Sent";
-  setTimeout(() => window.close(), CLOSE_TIMEOUT);
+  cancelBtn.hidden = true;
+  pendingOverwrite = null;
+  closeWithProgress("Sent");
 }
 
 async function sendToServer(markdown: string, filename: string): Promise<void> {
@@ -246,12 +286,15 @@ async function sendToServer(markdown: string, filename: string): Promise<void> {
     return;
   }
 
-  saveButton.dataset.state = "saved";
-  saveButton.textContent = "Sent";
-  setTimeout(() => window.close(), CLOSE_TIMEOUT);
+  closeWithProgress("Sent");
 }
 
-async function onSave(): Promise<void> {
+async function onSubmit(): Promise<void> {
+  if (pendingOverwrite) {
+    await pendingOverwrite();
+    return;
+  }
+
   if (!currentMarkdown || !currentFilename) return;
 
   const saveButton = getElement<HTMLButtonElement>("save");
@@ -274,14 +317,13 @@ async function onSave(): Promise<void> {
     if (saveMode === SaveMode.Download) {
       saveButton.textContent = "Downloading…";
       downloadBookmark(markdown, currentFilename);
-      saveButton.dataset.state = "saved";
-      saveButton.textContent = "Downloaded";
-      setTimeout(() => window.close(), CLOSE_TIMEOUT);
+      closeWithProgress("Downloaded");
       return;
     }
 
     await sendToServer(markdown, currentFilename);
   } catch {
+    // Expected when the server is unreachable; handled via the UI message
     saveButton.dataset.state = "error";
     saveButton.textContent = "Failed";
     saveButton.disabled = false;
@@ -291,7 +333,8 @@ async function onSave(): Promise<void> {
   }
 }
 
-getElement("save").addEventListener("click", () =>
-  onSave().catch(console.error),
-);
+getElement("popup-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  onSubmit().catch(console.error);
+});
 onExtract().catch(console.error);

@@ -66,6 +66,12 @@
         gap: 8px;
       }
 
+      #popup-form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
       #preview-card {
         border: 1px solid var(--color-border);
         border-radius: 12px;
@@ -128,8 +134,7 @@
       }
 
       #save {
-        display: block;
-        width: 100%;
+        flex: 1;
         padding: 8px;
         font-size: 14px;
         font-weight: 500;
@@ -138,6 +143,9 @@
         border: none;
         border-radius: 8px;
         cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        z-index: 0;
       }
 
       #save:disabled {
@@ -155,8 +163,25 @@
         cursor: default;
       }
 
-      #save[data-state="saved"] {
+      #save[data-state="closing"],
+      #save[data-state="closing"]:disabled {
+        background: #15612b;
+        color: #fff;
+        cursor: default;
+      }
+
+      #save[data-state="closing"]::after {
+        content: "";
+        position: absolute;
+        inset: 0;
         background: #1a7f37;
+        z-index: -1;
+        animation: fill-close var(--close-duration) linear forwards;
+      }
+
+      @keyframes fill-close {
+        from { transform: scaleX(0); transform-origin: left; }
+        to { transform: scaleX(1); transform-origin: left; }
       }
 
       #save[data-state="error"] {
@@ -169,7 +194,13 @@
       }
 
       @media (prefers-color-scheme: dark) {
-        #save[data-state="saved"] {
+        #save[data-state="closing"],
+        #save[data-state="closing"]:disabled {
+          background: #1a7f37;
+          color: #fff;
+        }
+
+        #save[data-state="closing"]::after {
           background: #2ea043;
         }
 
@@ -189,41 +220,29 @@
         margin-top: 4px;
       }
 
-      #overwrite {
-        display: block;
-        width: 100%;
+      #actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      #cancel {
+        flex: 1;
         padding: 8px;
         font-size: 14px;
         font-weight: 500;
         color: var(--color-btn-fg);
-        background: #cf222e;
+        background: var(--color-btn-bg);
         border: none;
         border-radius: 8px;
         cursor: pointer;
-        margin-top: 4px;
       }
 
-      #overwrite:hover {
-        background: #a40e26;
+      #cancel:hover {
+        background: var(--color-btn-bg-hover);
       }
 
-      #overwrite:disabled {
-        opacity: 0.7;
-        cursor: default;
-      }
-
-      #overwrite[hidden] {
+      #cancel[hidden] {
         display: none;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        #overwrite {
-          background: #da3633;
-        }
-
-        #overwrite:hover {
-          background: #b62324;
-        }
       }
 
       #save-error {
@@ -238,24 +257,28 @@
     </style>
   </head>
   <body>
-    <div id="preview-card">
-      <img id="preview-image" hidden />
-      <div id="preview-text">
-        <span id="preview-domain"></span>
-        <span id="preview-title"></span>
-        <span id="preview-description"></span>
+    <form id="popup-form">
+      <div id="preview-card">
+        <img id="preview-image" hidden />
+        <div id="preview-text">
+          <span id="preview-domain"></span>
+          <span id="preview-title"></span>
+          <span id="preview-description"></span>
+        </div>
       </div>
-    </div>
 
-    <div id="tags-section" hidden>
-      <div class="field-label">Custom tags</div>
-      <input id="tags-input" type="text" />
-    </div>
+      <div id="tags-section" hidden>
+        <div class="field-label">Custom tags</div>
+        <input id="tags-input" type="text" />
+      </div>
 
-    <button id="save" disabled>Save</button>
-    <p id="save-conflict" hidden></p>
-    <button id="overwrite" hidden>Overwrite</button>
-    <p id="save-error" hidden></p>
+      <p id="save-conflict" hidden></p>
+      <div id="actions">
+        <button id="save" disabled>Save</button>
+        <button id="cancel" type="button" hidden>Cancel</button>
+      </div>
+      <p id="save-error" hidden></p>
+    </form>
     <script src="popup.js"></script>
   </body>
 </html>
