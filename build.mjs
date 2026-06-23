@@ -48,13 +48,13 @@ writeFileSync("dist/manifest.json", JSON.stringify(manifest, null, 2) + "\n");
 
 cpSync("src/popup.html", "dist/popup.html");
 
-const DEV_BANNER = `<div style="background: #e67e00; color: #fff; padding: 8px 16px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; font-weight: 600;">Development Build</div>`;
+const DEV_BADGE = ` <span class="badge" style="background: #e67e22; color: #fff; border-color: #e67e22;">dev</span>`;
 
 const optionsHtml = readFileSync("src/options.html", "utf-8");
 if (isDev) {
   writeFileSync(
     "dist/options.html",
-    optionsHtml.replace("<body>", `<body>\n    ${DEV_BANNER}`),
+    optionsHtml.replace("</h1>", `${DEV_BADGE}</h1>`),
   );
 } else {
   cpSync("src/options.html", "dist/options.html");
