@@ -4,6 +4,7 @@ import {
   buildFrontMatter as buildFrontMatterYaml,
   parseMetaDate,
 } from "./frontmatter";
+import { extractKeywordsFromJsonLd } from "./json-ld";
 import { generateFilename } from "./slug";
 
 function getMetaContent(
@@ -20,10 +21,22 @@ function getOgProperty(property: string): string | null {
   return getMetaContent("property", property);
 }
 
-function getOgTags(): string[] {
-  return Array.from(
+function getJsonLdKeywords(): string[] {
+  const scripts = document.querySelectorAll<HTMLScriptElement>(
+    'script[type="application/ld+json"]',
+  );
+  const rawBlocks = Array.from(scripts).map((s) => s.textContent ?? "");
+  return extractKeywordsFromJsonLd(rawBlocks);
+}
+
+function getSourceTags(): string[] {
+  const ogTags = Array.from(
     document.querySelectorAll<HTMLMetaElement>('meta[property="article:tag"]'),
   ).map((el) => el.content);
+
+  if (ogTags.length > 0) return ogTags;
+
+  return getJsonLdKeywords();
 }
 
 function extractArticle(): ReturnType<Readability["parse"]> {
@@ -54,7 +67,7 @@ function buildFrontMatter(
     siteName: getOgProperty("og:site_name") ?? null,
     description: getOgProperty("og:description") ?? "",
     image: sanitizeImageUrl(getOgProperty("og:image")),
-    sourceTags: getOgTags(),
+    sourceTags: getSourceTags(),
     savedAt,
     publishedAt: parseMetaDate(getOgProperty("article:published_time")),
     updatedAt: parseMetaDate(getOgProperty("article:modified_time")),
