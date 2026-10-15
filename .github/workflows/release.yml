@@ -40,7 +40,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EXTENSION_ID: ${{ vars.EXTENSION_ID }}
+          PUBLISHER_ID: ${{ vars.PUBLISHER_ID }}
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
-        run: npx semantic-release
+        # Fail before semantic-release runs: the store upload is its last step, so
+        # without a publisher ID the run would fail only after the GitHub release
+        # and the chore(release) commit exist.
+        run: |
+          if [ -z "$PUBLISHER_ID" ]; then
+            echo "::error::PUBLISHER_ID is empty. Set the Chrome Web Store environment's PUBLISHER_ID variable to the publisher ID from the Chrome Web Store Developer Dashboard's Settings page."
+            exit 1
+          fi
+          npx semantic-release
